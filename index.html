@@ -117,4 +117,15 @@
 </script>
 
 </body>
+  <button onclick="clearLogs()">すべての記録を削除</button>
+
+<script>
+  function clearLogs() {
+    if (confirm("本当にすべての記録を削除しますか？")) {
+      localStorage.removeItem('biasLogs');
+      logs = [];
+      updateLogTable();
+    }
+  }
+</script>
 </html>
