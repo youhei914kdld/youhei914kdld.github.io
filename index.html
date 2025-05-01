@@ -13,7 +13,7 @@
 <body>
 
 <h1>乱数生成と偏りの記録</h1>
-<p>このサイトは24時間乱数を記録しているサイトです。この乱数は1秒間に100個生成されていて偏りの%が異常値になっているものを記録します。<br>
+<p>このサイトは24時間乱数を記録しているサイトです。この乱数は1秒間に100個生成されていて、偏りの%が0.3%程度で異常値を記録します。<br>
 確率でありえないことが起きているなら世界のどこかで同じような事象が起きていてもおかしくないと思い作ってみました。</p>
 <p>作成者: もりこ｜<a href="https://x.com/moriko891212654?s=09" target="_blank">Twitterアカウント</a></p>
 
@@ -30,24 +30,26 @@
 </table>
 
 <h2>時間指定でデータを検索</h2>
+<p>検索する範囲を指定してください（開始日時と終了日時）:</p>
+<input type="datetime-local" id="startDate">
 <input type="datetime-local" id="endDate">
-<button onclick="filterByTime()">検索</button>
+<button onclick="filterByRange()">検索</button>
 
 <script>
   // 偏りログの取得
   let logs = JSON.parse(localStorage.getItem('biasLogs') || '[]');
 
-  function filterByTime() {
-    const selected = document.getElementById("endDate").value;
-    if (!selected) return;
+  function filterByRange() {
+    const startSelected = document.getElementById("startDate").value;
+    const endSelected = document.getElementById("endDate").value;
 
-    // 選択された日時をローカルタイムとして取得
-    const selectedDate = new Date(selected);
+    if (!startSelected || !endSelected) return;
 
-    // ローカルタイムで比較するためにtoISOStringは使用せず、selectedDateをそのまま比較
-    const selectedISOString = selectedDate.toISOString().slice(0, 19) + "Z";
+    const startDate = new Date(startSelected).toISOString();
+    const endDate = new Date(endSelected).toISOString();
 
-    const filtered = logs.filter(item => item.time >= selectedISOString);
+    // 開始日時と終了日時の範囲内のデータをフィルタリング
+    const filtered = logs.filter(item => item.time >= startDate && item.time <= endDate);
 
     const tbody = document.querySelector("#logTable tbody");
     tbody.innerHTML = "";
@@ -88,7 +90,7 @@
       const expected = countPerSec / 10;
       const deviation = ((count - expected) / expected) * 100;
 
-      if (Math.abs(deviation) >= 75) { // ±75%以上を記録
+      if (Math.abs(deviation) >= 0.3) { // 0.3%の確率で記録
         logs.push({
           time,
           value: i + 1,
