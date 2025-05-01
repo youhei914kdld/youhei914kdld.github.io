@@ -90,7 +90,7 @@
       const expected = countPerSec / 10;
       const deviation = ((count - expected) / expected) * 100;
 
-      if (Math.abs(deviation) >= 0.3) { // 0.3%の確率で記録
+      if (Math.abs(deviation) >= 1000) { // 1000%の偏りで記録
         logs.push({
           time,
           value: i + 1,
