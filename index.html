@@ -58,6 +58,63 @@
 
   window.onload = () => populateTable(data);
 </script>
+  <script>
+const INTERVAL_MS = 1000; // 1秒ごと
+const COUNT_PER_SEC = 100; // 1秒間に100個の乱数
+const RANGE = 10; // 1〜10
+const THRESHOLD_PERCENT = 100; // ±100%以上を記録
+
+// 偏りログの取得
+let logs = JSON.parse(localStorage.getItem('biasLogs') || '[]');
+
+// 偏りを表示する関数
+function updateLogTable() {
+    const table = document.getElementById('logTable');
+    table.innerHTML = "<tr><th>日時</th><th>偏りのある値</th><th>出現数</th><th>偏り%</th></tr>";
+
+    logs.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
+    for (const log of logs) {
+        const row = table.insertRow();
+        row.insertCell().innerText = log.time;
+        row.insertCell().innerText = log.value;
+        row.insertCell().innerText = log.count;
+        row.insertCell().innerText = `${log.deviation}%`;
+    }
+}
+
+// 乱数生成と偏りチェック
+function generateAndCheck() {
+    const counts = Array(RANGE).fill(0);
+    for (let i = 0; i < COUNT_PER_SEC; i++) {
+        const rand = Math.floor(Math.random() * RANGE);
+        counts[rand]++;
+    }
+
+    const time = new Date().toISOString();
+
+    counts.forEach((count, i) => {
+        const expected = COUNT_PER_SEC / RANGE;
+        const deviation = ((count - expected) / expected) * 100;
+
+        if (Math.abs(deviation) >= THRESHOLD_PERCENT) {
+            logs.push({
+                time,
+                value: i + 1,
+                count,
+                deviation: Math.round(deviation)
+            });
+            localStorage.setItem('biasLogs', JSON.stringify(logs));
+            updateLogTable();
+        }
+    });
+}
+
+// 初期表示
+updateLogTable();
+
+// 毎秒乱数生成
+setInterval(generateAndCheck, INTERVAL_MS);
+</script>
 
 </body>
 </html>
