@@ -79,7 +79,7 @@ function updateLogTable() {
 
 // 乱数生成と偏りチェック
 function generateAndCheck() {
-    const counts = Array(RANGE).fill(0);
+  const counts = Array(RANGE).fill(0);
     for (let i = 0; i < COUNT_PER_SEC; i++) {
         const rand = Math.floor(Math.random() * RANGE);
         counts[rand]++;
