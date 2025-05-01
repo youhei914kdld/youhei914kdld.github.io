@@ -3,125 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>地震発生時刻と乱数データ</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-
-        #earthquake-info {
-            background-color: #fff;
-            border-radius: 8px;
-            margin: 20px auto;
-            padding: 20px;
-            width: 90%;
-            max-width: 600px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        #earthquake-time {
-            font-size: 18px;
-            font-weight: bold;
-            color: #e74c3c;
-        }
-
-        #random-log {
-            margin-top: 20px;
-            list-style-type: none;
-            padding: 0;
-        }
-
-        #random-log li {
-            background-color: #ecf0f1;
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-
-        #random-log li:hover {
-            background-color: #bdc3c7;
-        }
-
-        /* ヘッダー */
-        h1 {
-            text-align: center;
-            font-size: 2.5em;
-            color: #3498db;
-            margin-top: 30px;
-        }
-
-        /* レスポンシブデザイン */
-        @media (max-width: 600px) {
-            #earthquake-info {
-                padding: 15px;
-                width: 95%;
-            }
-
-            h1 {
-                font-size: 2em;
-            }
-        }
-    </style>
+    <title>乱数偏り計測</title>
 </head>
 <body>
-    <h1>地震発生時刻と乱数ログ</h1>
-
-    <div id="earthquake-info">
-        <p id="earthquake-time">最新の地震時刻： loading...</p>
-        <h2>乱数ログ（前後1分間）</h2>
-        <ul id="random-log">
-            <!-- 乱数データがここに追加される -->
-        </ul>
-    </div>
+    <h1>地震発生時の乱数偏り測定</h1>
+    <input type="datetime-local" id="start-time" />
+    <input type="datetime-local" id="end-time" />
+    <button onclick="searchBias()">偏り計測</button>
+    <p id="result"></p>
 
     <script>
-        // サンプルデータ
-        const random_log = [
-            ["2025-05-01 16:48:57", 0.734],
-            ["2025-05-01 16:48:58", 0.839],
-            ["2025-05-01 16:48:59", 0.127],
-            ["2025-05-01 16:49:00", 0.664],
-        ];
-
-        // 地震発生データを取得（仮）
-        function getRecentEarthquakes() {
-            return [
-                { time: "2025-05-01 16:48:58" }  // 仮の地震発生時刻
-            ];
+        let randomNumbers = [];
+        
+        // 乱数を0.1秒ごとに100回生成する
+        function generateRandomNumbers() {
+            setInterval(() => {
+                for (let i = 0; i < 100; i++) {
+                    const randomValue = Math.random();
+                    randomNumbers.push({ timestamp: new Date(), value: randomValue });
+                }
+            }, 100);
         }
 
-        // 乱数データの表示
-        function displayRandomLog(earthquakeTime) {
-            const logList = document.getElementById("random-log");
-            const earthquakeTimeObj = new Date(earthquakeTime);
+        // 地震データを取得する（過去5分間）
+        async function getEarthquakeData() {
+            const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson";
+            const response = await fetch(url);
+            const data = await response.json();
+            const now = new Date().getTime();
+            const fiveMinutesAgo = now - (5 * 60 * 1000); // 5分前のタイムスタンプ
 
-            // 乱数ログをリセット
-            logList.innerHTML = '';
-
-            random_log.forEach(([timestamp, value]) => {
-                const timestampObj = new Date(timestamp);
-                const diff = Math.abs((timestampObj - earthquakeTimeObj) / 1000); // 秒差
-
-                if (diff <= 60) {  // 1分以内の乱数ログを表示
-                    const li = document.createElement("li");
-                    li.textContent = `${timestamp} - ${value}`;
-                    logList.appendChild(li);
-                }
+            return data.features.filter(earthquake => {
+                const earthquakeTime = earthquake.properties.time;
+                return earthquakeTime >= fiveMinutesAgo && earthquakeTime <= now;
             });
         }
 
-        // 地震発生時の情報を表示
-        const earthquakes = getRecentEarthquakes();
-        if (earthquakes.length > 0) {
-            const earthquakeTime = earthquakes[0].time;
-            document.getElementById("earthquake-time").textContent = `最新の地震時刻： ${earthquakeTime}`;
-            displayRandomLog(earthquakeTime);
+        // 指定した時間範囲の乱数偏りを計算する
+        function calculateRandomBias(startTime, endTime) {
+            const start = new Date(startTime).getTime();
+            const end = new Date(endTime).getTime();
+            const total = randomNumbers.filter(random => {
+                const timestamp = random.timestamp.getTime();
+                return timestamp >= start && timestamp <= end;
+            });
+
+            const biasCount = total.filter(random => random.value >= 0.5).length;
+            const biasPercentage = (biasCount / total.length) * 100;
+
+            return biasPercentage;
         }
+
+        // 偏り計測の検索ボタンがクリックされた時
+        function searchBias() {
+            const startTime = document.getElementById('start-time').value;
+            const endTime = document.getElementById('end-time').value;
+            const biasPercentage = calculateRandomBias(startTime, endTime);
+            document.getElementById('result').innerText = `指定時間内の乱数の偏り具合: ${biasPercentage}%`;
+        }
+
+        // 乱数生成を開始
+        generateRandomNumbers();
     </script>
 </body>
 </html>
