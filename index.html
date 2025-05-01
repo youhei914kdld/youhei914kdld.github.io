@@ -1,6 +1,71 @@
 <!DOCTYPE html>
 <html>
   <head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+
+    #earthquake-info {
+      background-color: #fff;
+      border-radius: 8px;
+      margin: 20px auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    #earthquake-time {
+      font-size: 18px;
+      font-weight: bold;
+      color: #e74c3c;
+    }
+
+    #random-log {
+      margin-top: 20px;
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #random-log li {
+      background-color: #ecf0f1;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    #random-log li:hover {
+      background-color: #bdc3c7;
+    }
+
+    /* ヘッダー */
+    h1 {
+      text-align: center;
+      font-size: 2.5em;
+      color: #3498db;
+      margin-top: 30px;
+    }
+
+    /* レスポンシブデザイン */
+    @media (max-width: 600px) {
+      #earthquake-info {
+        padding: 15px;
+        width: 95%;
+      }
+
+      h1 {
+        font-size: 2em;
+      }
+    }
+  </style>
+</head>
+  <head>
     <meta charset="UTF-8">
     <title>ようこそ！</title>
   </head>
