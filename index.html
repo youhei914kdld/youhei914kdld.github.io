@@ -20,6 +20,13 @@
     <tbody></tbody>
   </table>
 
+  <h2>時間指定でデータを検索</h2>
+  <label for="startDate">開始日時:</label>
+  <input type="datetime-local" id="startDate">
+  <label for="endDate">終了日時:</label>
+  <input type="datetime-local" id="endDate">
+  <button onclick="filterByTime()">検索</button>
+
   <script>
     let logData = []; // 乱数と偏りデータを保存する配列
     const biasThreshold = 100; // 偏りのしきい値（100%）
@@ -81,6 +88,32 @@
 
     // 1秒ごとに乱数生成
     setInterval(generateRandomNumbers, 1000);
+
+    // 時間指定でデータをフィルタリングする関数
+    function filterByTime() {
+      const startDate = new Date(document.getElementById("startDate").value);
+      const endDate = new Date(document.getElementById("endDate").value);
+
+      const filteredData = logData.filter(entry => {
+        const timestamp = new Date(entry.timestamp);
+        return timestamp >= startDate && timestamp <= endDate;
+      });
+
+      // フィルタリングされたデータを表示
+      const tableBody = document.querySelector("#logTable tbody");
+      tableBody.innerHTML = ""; // テーブルをクリア
+
+      // 新しいデータをテーブルに追加
+      filteredData.forEach(entry => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${entry.timestamp}</td>
+          <td>${entry.randomNumbers.join(", ")}</td>
+          <td>${entry.bias.toFixed(2)}%</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
   </script>
 </body>
 </html>
