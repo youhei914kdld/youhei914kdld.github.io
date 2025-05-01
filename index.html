@@ -36,16 +36,6 @@
 <script>
   // テスト用データ（後でJSONやリアルデータに差し替え）
  
-  function populateTable(entries) {
-    const tbody = document.querySelector("#logTable tbody");
-    tbody.innerHTML = "";
-    entries.forEach(entry => {
-      const row = document.createElement("tr");
-    
-      tbody.appendChild(row);
-    });
-  }
-
   function filterByTime() {
   const selected = document.getElementById("endDate").value;
   if (!selected) return;
