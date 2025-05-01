@@ -52,8 +52,20 @@
 
   function filterByTime() {
     const selected = document.getElementById("endDate").value;
-    const filtered = data.filter(item => item.time >= selected);
-    populateTable(filtered);
+    const filtered = logs.filter(item => item.time >= selected);
+    
+    const table = document.getElementById('logTable');
+    table.innerHTML = "<tr><th>日時</th><th>偏りのある値</th><th>出現数</th><th>偏り%</th></tr>";
+
+    filtered.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
+    for (const log of filtered) {
+        const row = table.insertRow();
+        row.insertCell().innerText = log.time;
+        row.insertCell().innerText = log.value;
+        row.insertCell().innerText = log.count;
+        row.insertCell().innerText = `${log.deviation}%`;
+    }
+}
   }
 
   window.onload = () => populateTable(data);
