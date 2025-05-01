@@ -1,160 +1,187 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>地震×乱数偏りモニタ</title>
-  <style>
-    body { font-family: sans-serif; margin: 0; padding: 1em; background: #f9f9f9; }
-    h1 { font-size: 1.4em; margin-bottom: 0.5em; }
-    p { font-size: 0.9em; line-height: 1.5em; }
-    .section { margin-bottom: 1.5em; }
-    .highlight { color: red; font-weight: bold; }
-    .quake-time { font-size: 1em; margin-top: 1em; }
-    .search-box { margin: 1em 0; }
-    input[type="datetime-local"] {
-      width: 100%;
-      padding: 0.5em;
-      font-size: 1em;
-      margin-bottom: 0.5em;
-    }
-    button {
-      padding: 0.5em;
-      font-size: 1em;
-      width: 100%;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85em;
-      margin-top: 1em;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 4px;
-      text-align: center;
-    }
-    footer {
-      font-size: 0.8em;
-      text-align: center;
-      margin-top: 2em;
-      color: gray;
-    }
-    a { color: #007bff; text-decoration: none; }
-    .sortable th {
-      cursor: pointer;
-    }
-    .sortable th:hover {
-      background-color: #e0e0e0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乱数生成と地震データ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+        }
+        input, select {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        #earthquake-info {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
 
-<h1>地震×乱数偏りモニタ</h1>
+<header>
+    <h1>乱数生成と地震データの記録</h1>
+</header>
 
-<p>このページでは、地震発生時の乱数データを表示し、地震前後5分間のデータとその偏り具合を監視することができます。</p>
+<div class="container">
+    <label for="search-time">検索する時間 (YYYY-MM-DD HH:mm): </label>
+    <input type="datetime-local" id="search-time" name="search-time">
+    <button id="search-button">検索</button>
 
-<!-- 検索ボックス -->
-<div class="search-box">
-  <label for="search-time">指定した時間から検索：</label>
-  <input type="datetime-local" id="search-time" name="search-time">
-  <button onclick="searchByTime()">検索</button>
+    <div id="earthquake-info">
+        <h2>最新の地震情報</h2>
+        <p id="earthquake-details"></p>
+    </div>
+
+    <h2>乱数データ</h2>
+    <table id="random-data">
+        <thead>
+            <tr>
+                <th>時間</th>
+                <th>乱数値</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- ここに乱数データが表示されます -->
+        </tbody>
+    </table>
+
+    <h3>異常偏りの警告:</h3>
+    <p id="anomaly-warning">異常なし</p>
 </div>
-
-<!-- 地震データ表示 -->
-<div id="earthquake-info" class="section">
-  <h2>最新の地震情報</h2>
-  <table id="earthquake-table">
-    <thead>
-      <tr>
-        <th>発生時刻</th>
-        <th>震度</th>
-        <th>マグニチュード</th>
-        <th>地方</th>
-        <th>偏り具合</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- 地震データがここに追加されます -->
-    </tbody>
-  </table>
-</div>
-
-<footer>
-  <p>作成者: もりこ | <a href="https://x.com/moriko891212654?s=09" target="_blank">Twitter</a></p>
-</footer>
 
 <script>
-  // 地震データを取得する関数
-  async function fetchEarthquakeData() {
-    const response = await fetch('https://www.jma.go.jp/bosai/quake/data/list.json');
+// 乱数生成の処理
+let randomData = [];
+let earthquakeData = [];
+const numRandomsPerMinute = 600; // 1分間に600回の乱数生成
+
+// 乱数生成関数
+function generateRandomNumbers() {
+    const now = new Date();
+    for (let i = 0; i < numRandomsPerMinute; i++) {
+        const timestamp = new Date(now.getTime() + (i * 1000)); // 1秒ごとに乱数を生成
+        const randomValue = Math.random();
+        randomData.push({ timestamp: timestamp.toISOString(), value: randomValue });
+    }
+}
+
+// 地震データの取得
+async function fetchEarthquakeData() {
+    const response = await fetch("https://www.jma.go.jp/bosai/quake/data/list.json");
     const data = await response.json();
-    return data.earthquakes;
-  }
+    earthquakeData = data.map(entry => ({
+        time: new Date(entry.time * 1000).toISOString(),
+        magnitude: entry.magnitude,
+        intensity: entry.intensity,
+        region: entry.region,
+    }));
+    displayEarthquakeData();
+}
 
-  // 地震データを表示する関数
-  function displayEarthquakeData(earthquakes) {
-    const tableBody = document.querySelector('#earthquake-table tbody');
-    tableBody.innerHTML = ''; // 一度内容をリセット
+// 最新の地震データを表示
+function displayEarthquakeData() {
+    const latestEarthquake = earthquakeData[0]; // 最新の地震
+    if (latestEarthquake) {
+        document.getElementById('earthquake-details').innerHTML = `
+            時刻: ${latestEarthquake.time}<br>
+            マグニチュード: ${latestEarthquake.magnitude}<br>
+            震度: ${latestEarthquake.intensity}<br>
+            地域: ${latestEarthquake.region}
+        `;
+    } else {
+        document.getElementById('earthquake-details').innerHTML = '地震データはまだ取得されていません。';
+    }
+}
 
-    earthquakes.forEach((quake) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${quake.time}</td>
-        <td>${quake.shindo}</td>
-        <td>${quake.magnitude}</td>
-        <td>${quake.region}</td>
-        <td>${quake.deviation}</td>
-      `;
-      tableBody.appendChild(row);
+// 乱数データの表示
+function displayRandomData() {
+    const tableBody = document.getElementById('random-data').querySelector('tbody');
+    tableBody.innerHTML = ''; // 既存のデータを削除
+    randomData.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${item.timestamp}</td><td>${item.value}</td>`;
+        tableBody.appendChild(row);
     });
-  }
+}
 
-  // 検索機能
-  function searchByTime() {
+// 検索機能
+document.getElementById('search-button').addEventListener('click', function () {
     const searchTime = document.getElementById('search-time').value;
     if (!searchTime) {
-      alert('時間を指定してください');
-      return;
+        alert("時間を指定してください！");
+        return;
     }
     const searchDate = new Date(searchTime);
-    // ここで指定した時間に基づいて検索処理
-    alert('検索機能はまだ実装されていません');
-  }
-
-  // 地震データの並び替え
-  function sortTable(columnIndex) {
-    const table = document.getElementById('earthquake-table');
-    const rows = Array.from(table.rows).slice(1); // ヘッダーを除外
-    const sortedRows = rows.sort((rowA, rowB) => {
-      const cellA = rowA.cells[columnIndex].innerText;
-      const cellB = rowB.cells[columnIndex].innerText;
-
-      if (!isNaN(cellA) && !isNaN(cellB)) {
-        return parseFloat(cellA) - parseFloat(cellB);
-      } else {
-        return cellA.localeCompare(cellB);
-      }
+    const filteredData = randomData.filter(item => {
+        const timestamp = new Date(item.timestamp);
+        return timestamp >= searchDate && timestamp < new Date(searchDate.getTime() + 60000); // 1分間のデータ
     });
 
-    sortedRows.forEach(row => table.appendChild(row));
-  }
-
-  // ページ読み込み時に地震データを取得
-  document.addEventListener('DOMContentLoaded', async () => {
-    const earthquakeData = await fetchEarthquakeData();
-    displayEarthquakeData(earthquakeData);
-
-    // 並び替え機能を追加
-    document.querySelectorAll('.sortable th').forEach((th, index) => {
-      th.addEventListener('click', () => sortTable(index));
+    const tableBody = document.getElementById('random-data').querySelector('tbody');
+    tableBody.innerHTML = ''; // 既存のデータを削除
+    filteredData.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${item.timestamp}</td><td>${item.value}</td>`;
+        tableBody.appendChild(row);
     });
-  });
+});
+
+// 異常偏りの警告
+function checkAnomaly() {
+    let anomalyFound = false;
+    randomData.forEach(item => {
+        if (item.value < 0.1 || item.value > 0.9) { // 例: 乱数が0.1未満または0.9超で異常と見なす
+            anomalyFound = true;
+        }
+    });
+    document.getElementById('anomaly-warning').textContent = anomalyFound ? '異常偏りが検出されました！' : '異常なし';
+}
+
+// 初期化
+generateRandomNumbers();  // 初期乱数生成
+fetchEarthquakeData();    // 地震データの取得
+setInterval(() => {
+    generateRandomNumbers(); // 1分間に600回乱数生成
+    displayRandomData();     // 乱数データを表示
+    checkAnomaly();          // 異常検出
+}, 60000); // 1分ごとに乱数生成を行う
 </script>
 
 </body>
