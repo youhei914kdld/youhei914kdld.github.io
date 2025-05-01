@@ -8,6 +8,9 @@
 <body>
   <h1>乱数生成と偏りの記録</h1>
 
+  <!-- 作成者情報とTwitterアカウントの表示 -->
+  <p><strong>作成者:</strong> もりこ <a href="https://x.com/moriko891212654?s=09" target="_blank">Twitter</a></p>
+
   <h2>乱数ログ</h2>
   <table id="logTable" border="1">
     <thead>
@@ -28,7 +31,7 @@
   <button onclick="filterByTime()">検索</button>
 
   <script>
-    let logData = []; // 乱数と偏りデータを保存する配列
+    let logData = JSON.parse(localStorage.getItem('logData')) || []; // ローカルストレージからデータを読み込む、なければ空配列
     const biasThreshold = 100; // 偏りのしきい値（100%）
 
     // 1秒間に100回乱数を生成して保存する
@@ -45,7 +48,11 @@
       // 偏りがしきい値を超えていたら保存
       if (Math.abs(bias) >= biasThreshold) {
         const timestamp = new Date().toLocaleString();
-        logData.push({ timestamp, randomNumbers, bias });
+        const entry = { timestamp, randomNumbers, bias };
+
+        // ログデータをローカルストレージに保存
+        logData.push(entry);
+        localStorage.setItem('logData', JSON.stringify(logData));
 
         // ログをテーブルに追加
         updateLogTable();
@@ -114,6 +121,11 @@
         tableBody.appendChild(row);
       });
     }
+
+    // ページ読み込み時にローカルストレージからデータを表示
+    window.onload = function() {
+      updateLogTable();
+    };
   </script>
 </body>
 </html>
