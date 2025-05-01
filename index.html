@@ -66,9 +66,8 @@
         row.insertCell().innerText = `${log.deviation}%`;
     }
 }
-  }
 
-  window.onload = () => populateTable(data);
+  window.onload = () => updateLogTable();
 </script>
   <script>
 const INTERVAL_MS = 1000; // 1秒ごと
@@ -106,7 +105,7 @@ function generateAndCheck() {
 
     counts.forEach((count, i) => {
         const expected = COUNT_PER_SEC / RANGE;
-        const deviation = ((count - expected) / expected) * 75;
+        const deviation = ((count - expected) / expected) * 100;
 
         if (Math.abs(deviation) >= THRESHOLD_PERCENT) {
             logs.push({
