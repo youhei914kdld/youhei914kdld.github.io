@@ -34,87 +34,84 @@
 <button onclick="filterByTime()">検索</button>
 
 <script>
-  // テスト用データ（後でJSONやリアルデータに差し替え）
- 
+  // 偏りログの取得
+  let logs = JSON.parse(localStorage.getItem('biasLogs') || '[]');
+
   function filterByTime() {
-  const selected = document.getElementById("endDate").value;
-  if (!selected) return;
+    const selected = document.getElementById("endDate").value;
+    if (!selected) return;
 
-  const filtered = logs.filter(item => item.time >= selected);
+    // 選択された日時をローカルタイムとして取得
+    const selectedDate = new Date(selected);
 
-  const tbody = document.querySelector("#logTable tbody");
-  tbody.innerHTML = "";
+    // ローカルタイムで比較するためにtoISOStringは使用せず、selectedDateをそのまま比較
+    const selectedISOString = selectedDate.toISOString().slice(0, 19) + "Z";
 
-  filtered.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
-  for (const log of filtered) {
-    const row = document.createElement("tr");
-    row.innerHTML = `<td>${log.time}</td><td>${log.value} × ${log.count}</td><td>${log.deviation}%</td>`;
-    tbody.appendChild(row);
+    const filtered = logs.filter(item => item.time >= selectedISOString);
+
+    const tbody = document.querySelector("#logTable tbody");
+    tbody.innerHTML = "";
+
+    filtered.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
+    for (const log of filtered) {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${log.time}</td><td>${log.value} × ${log.count}</td><td>${log.deviation}%</td>`;
+      tbody.appendChild(row);
+    }
   }
-}
 
-  window.onload = () => updateLogTable();
-</script>
-  <script>
-const INTERVAL_MS = 1000; // 1秒ごと
-const COUNT_PER_SEC = 100; // 1秒間に100個の乱数
-const RANGE = 10; // 1〜10
-const THRESHOLD_PERCENT = 75; // ±75%以上を記録
+  // 偏りを表示する関数
+  function updateLogTable() {
+    const tbody = document.querySelector('#logTable tbody');
+    tbody.innerHTML = "";
 
-// 偏りログの取得
-let logs = JSON.parse(localStorage.getItem('biasLogs') || '[]');
-
-// 偏りを表示する関数
-function updateLogTable() {
-  const tbody = document.querySelector('#logTable tbody');
-  tbody.innerHTML = "";
-
-  logs.sort((a, b) => Math.abs(Number(b.deviation)) - Math.abs(Number(a.deviation)));
-  for (const log of logs) {
-    const row = document.createElement("tr");
-    row.innerHTML = `<td>${log.time}</td><td>${log.value} × ${log.count}</td><td>${log.deviation}%</td>`;
-    tbody.appendChild(row);
+    logs.sort((a, b) => Math.abs(Number(b.deviation)) - Math.abs(Number(a.deviation)));
+    for (const log of logs) {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${log.time}</td><td>${log.value} × ${log.count}</td><td>${log.deviation}%</td>`;
+      tbody.appendChild(row);
+    }
   }
-}
 
-// 乱数生成と偏りチェック
-function generateAndCheck() {
-  const counts = Array(RANGE).fill(0);
-    for (let i = 0; i < COUNT_PER_SEC; i++) {
-        const rand = Math.floor(Math.random() * RANGE);
-        counts[rand]++;
+  // 乱数生成と偏りチェック
+  function generateAndCheck() {
+    const counts = Array(10).fill(0); // 1〜10の乱数
+    const countPerSec = 100; // 1秒間に100個
+    for (let i = 0; i < countPerSec; i++) {
+      const rand = Math.floor(Math.random() * 10); // 0から9の乱数
+      counts[rand]++;
     }
 
     const time = new Date().toISOString();
 
     counts.forEach((count, i) => {
-        const expected = COUNT_PER_SEC / RANGE;
-        const deviation = ((count - expected) / expected) * 100;
+      const expected = countPerSec / 10;
+      const deviation = ((count - expected) / expected) * 100;
 
-        if (Math.abs(deviation) >= THRESHOLD_PERCENT) {
-            logs.push({
-                time,
-                value: i + 1,
-                count,
-                deviation: Math.round(deviation)
-            });
+      if (Math.abs(deviation) >= 75) { // ±75%以上を記録
+        logs.push({
+          time,
+          value: i + 1,
+          count,
+          deviation: Math.round(deviation)
+        });
 
-    // ログを1000件までに制限（新しい順で残す）
-    if (logs.length > 1000) {
-        logs = logs.slice(logs.length - 1000);
-    }
-          
-            localStorage.setItem('biasLogs', JSON.stringify(logs));
-            updateLogTable();
+        // ログを1000件までに制限（新しい順で残す）
+        if (logs.length > 1000) {
+          logs = logs.slice(logs.length - 1000);
         }
-    });
-}
-    
-// 初期表示
-updateLogTable();
 
-// 毎秒乱数生成
-setInterval(generateAndCheck, INTERVAL_MS);
+        localStorage.setItem('biasLogs', JSON.stringify(logs));
+        updateLogTable();
+      }
+    });
+  }
+
+  // 初期表示
+  updateLogTable();
+
+  // 毎秒乱数生成
+  setInterval(generateAndCheck, 1000);
 </script>
 
 </body>
