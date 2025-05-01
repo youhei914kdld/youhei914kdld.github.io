@@ -1,32 +1,86 @@
-<button onclick="saveBias()">偏りを保存する</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>乱数生成と偏りの記録</title>
+</head>
+<body>
+  <h1>乱数生成と偏りの記録</h1>
 
-<script>
-function saveBias() {
-  // 保存したいデータ（例として偏り情報）
-  const biasData = {
-    timestamp: new Date().toISOString(),
-    result: {
-      1: 6,
-      2: 9,
-      3: 25,  // ← 偏りが大きかった数字
-      4: 8,
-      5: 10,
-      6: 12,
-      7: 9,
-      8: 11,
-      9: 5,
-      10: 5
-    },
-    biasPercent: "+150%"
-  };
+  <h2>乱数ログ</h2>
+  <table id="logTable" border="1">
+    <thead>
+      <tr>
+        <th>日時</th>
+        <th>乱数結果</th>
+        <th>偏り％</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-  // Blobを作ってJSONに変換
-  const blob = new Blob([JSON.stringify(biasData, null, 2)], { type: 'application/json' });
+  <script>
+    let logData = []; // 乱数と偏りデータを保存する配列
+    const biasThreshold = 100; // 偏りのしきい値（100%）
 
-  // ダウンロードリンクを自動作成・クリック
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `bias-${Date.now()}.json`;
-  link.click();
-}
-</script>
+    // 1秒間に100回乱数を生成して保存する
+    function generateRandomNumbers() {
+      const randomNumbers = [];
+      for (let i = 0; i < 100; i++) {
+        const rand = Math.floor(Math.random() * 10) + 1; // 1〜10の乱数
+        randomNumbers.push(rand);
+      }
+
+      // 偏りの計算
+      const bias = calculateBias(randomNumbers);
+
+      // 偏りがしきい値を超えていたら保存
+      if (Math.abs(bias) >= biasThreshold) {
+        const timestamp = new Date().toLocaleString();
+        logData.push({ timestamp, randomNumbers, bias });
+
+        // ログをテーブルに追加
+        updateLogTable();
+      }
+    }
+
+    // 偏り計算関数
+    function calculateBias(numbers) {
+      const counts = Array(10).fill(0); // 1〜10の出現回数を記録
+      numbers.forEach(num => counts[num - 1]++);
+      
+      // 期待値（各数字が出る回数）
+      const expected = numbers.length / 10;
+
+      // 偏り計算
+      let bias = 0;
+      counts.forEach(count => {
+        bias += Math.abs(count - expected);
+      });
+
+      return (bias / numbers.length) * 100; // 偏りをパーセンテージで返す
+    }
+
+    // ログテーブルを更新
+    function updateLogTable() {
+      const tableBody = document.querySelector("#logTable tbody");
+      tableBody.innerHTML = ""; // テーブルをクリア
+
+      // 新しいデータをテーブルに追加
+      logData.forEach(entry => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${entry.timestamp}</td>
+          <td>${entry.randomNumbers.join(", ")}</td>
+          <td>${entry.bias.toFixed(2)}%</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // 1秒ごとに乱数生成
+    setInterval(generateRandomNumbers, 1000);
+  </script>
+</body>
+</html>
