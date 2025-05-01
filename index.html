@@ -3,47 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <title>地震×乱数偏りモニタ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-    h1 { font-size: 24px; }
+    body { font-family: sans-serif; margin: 0; padding: 1em; background: #f9f9f9; }
+    h1 { font-size: 1.4em; margin-bottom: 0.5em; }
+    p { font-size: 0.9em; line-height: 1.5em; }
+    .section { margin-bottom: 1.5em; }
     .highlight { color: red; font-weight: bold; }
-    footer { text-align: center; margin-top: 40px; color: gray; }
-    button { margin: 10px 0; }
-    .quake-time { margin: 10px 0; font-size: 18px; }
-    .log-table { background: white; border-collapse: collapse; width: 100%; margin-top: 10px; }
-    .log-table th, .log-table td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    .quake-time { font-size: 1em; margin-top: 1em; }
+    .search-box { margin: 1em 0; }
+    input[type="datetime-local"] {
+      width: 100%;
+      padding: 0.5em;
+      font-size: 1em;
+      margin-bottom: 0.5em;
+    }
+    button {
+      padding: 0.5em;
+      font-size: 1em;
+      width: 100%;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85em;
+      margin-top: 1em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px;
+      text-align: center;
+    }
+    footer {
+      font-size: 0.8em;
+      text-align: center;
+      margin-top: 2em;
+      color: gray;
+    }
+    a { color: #007bff; text-decoration: none; }
   </style>
 </head>
 <body>
 
-<h1>地震直前5分間の乱数の偏りモニター</h1>
+<h1>地震×乱数偏りモニタ</h1>
 
-<p>
-このサイトでは、<strong>日本の気象庁（JMA）による地震情報</strong>をもとに、<br>
-<strong>地震が発生した直前5分間</strong>に生成された0〜1の乱数の偏りを観測しています。<br>
-乱数は0.1秒ごとに100個、24時間ノンストップで生成・記録されています。
-</p>
+<div class="section">
+  <p>
+    このサイトは、<strong>日本の地震速報（JMA）</strong>をもとに、<br>
+    <strong>地震が発生した直前5分間</strong>に発生した0〜1の乱数の偏りを表示します。<br>
+    乱数は<strong>0.1秒ごとに100個ずつ、24時間稼働</strong>で生成・記録しています。
+  </p>
+  <p>
+    偏り率（0.5以上の割合）が<strong>±10%以上</strong>になると強調表示されます。
+  </p>
+</div>
 
-<p>
-<strong>偏り率</strong>はその時間帯における「0.5以上の乱数の割合」です。<br>
-±10%以上の偏りが検出された場合、赤色で表示されます。
-</p>
+<div class="section">
+  <div class="quake-time" id="latest-quake">最新の地震：読み込み中...</div>
+  <button onclick="toggleNotifications()">通知: <span id="notifyStatus">OFF</span></button>
+</div>
 
-<div class="quake-time" id="latest-quake">最新の地震：読み込み中...</div>
+<div class="section search-box">
+  <label>任意の時刻で検索（直前5分を抽出）:</label><br>
+  <input type="datetime-local" id="searchTime">
+  <button onclick="searchCustomTime()">この時間で検索</button>
+</div>
 
-<button onclick="toggleNotifications()">通知: <span id="notifyStatus">OFF</span></button>
-
-<table class="log-table" id="log-table">
+<div id="bias-result"></div>
+<table id="log-table">
   <thead>
     <tr><th>時刻</th><th>乱数</th></tr>
   </thead>
   <tbody></tbody>
 </table>
 
-<div id="bias-result"></div>
-
 <footer>
-  作成者：もりこ /  
+  作成者：もりこ<br>
   <a href="https://x.com/moriko891212654?s=09" target="_blank">X（旧Twitter）</a>
 </footer>
 
@@ -59,31 +98,33 @@ function toggleNotifications() {
 function generateRandomData() {
   const now = new Date();
   for (let i = 0; i < 100; i++) {
-    const time = new Date(now.getTime());
-    time.setMilliseconds(time.getMilliseconds() + i);
+    const time = new Date(now.getTime() + i);
     const timestamp = time.toISOString().slice(0, 19).replace('T', ' ');
     randomLog.push([timestamp, Math.random()]);
   }
-  // メモリ管理
-  if (randomLog.length > 100000) {
+  if (randomLog.length > 200000) {
     randomLog = randomLog.slice(-100000);
   }
 }
-
-setInterval(generateRandomData, 100); // 0.1秒ごとに100回分
+setInterval(generateRandomData, 100);
 
 async function getLatestEarthquake() {
-  const res = await fetch("https://www.jma.go.jp/bosai/quake/data/list.json");
-  const data = await res.json();
-  const latest = data[0];
-  const quakeTime = latest.Time.split('+')[0].replace('T', ' ');
-  document.getElementById("latest-quake").textContent = "最新の地震：" + quakeTime;
-  showRandomAroundEarthquake(quakeTime);
+  try {
+    const res = await fetch("https://www.jma.go.jp/bosai/quake/data/list.json");
+    const data = await res.json();
+    const latest = data[0];
+    const quakeTime = latest.Time.split('+')[0].replace('T', ' ');
+    document.getElementById("latest-quake").textContent = "最新の地震：" + quakeTime;
+    showRandomAroundTime(quakeTime);
+  } catch (e) {
+    document.getElementById("latest-quake").textContent = "地震データの取得に失敗しました";
+  }
 }
+setInterval(getLatestEarthquake, 30000);
 
-function showRandomAroundEarthquake(quakeTime) {
-  const quakeDate = new Date(quakeTime);
-  const start = new Date(quakeDate.getTime() - 5 * 60 * 1000); // 5分前
+function showRandomAroundTime(baseTime) {
+  const quakeDate = new Date(baseTime);
+  const start = new Date(quakeDate.getTime() - 5 * 60 * 1000);
   const filtered = randomLog.filter(([ts, _]) => {
     const dt = new Date(ts);
     return dt >= start && dt <= quakeDate;
@@ -106,7 +147,12 @@ function showRandomAroundEarthquake(quakeTime) {
   if (notificationsOn && bias >= 10) alert("乱数の偏りが検出されました！");
 }
 
-setInterval(getLatestEarthquake, 30000); // 30秒おきにチェック
+function searchCustomTime() {
+  const input = document.getElementById("searchTime").value;
+  if (!input) return alert("検索したい日時を入力してください。");
+  const time = input.replace('T', ' ') + ':00';
+  showRandomAroundTime(time);
+}
 </script>
 
 </body>
