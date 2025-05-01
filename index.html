@@ -103,7 +103,7 @@ function generateAndCheck() {
     if (logs.length > 1000) {
         logs = logs.slice(logs.length - 1000);
     }
-            });
+            );
             localStorage.setItem('biasLogs', JSON.stringify(logs));
             updateLogTable();
         }
