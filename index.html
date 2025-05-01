@@ -5,7 +5,7 @@
   <title>乱数生成と偏りの記録</title>
   <style>
     body { font-family: sans-serif; }
-    table { border-collapse: collapse; width: 100%; }
+    table { border-collapse: collapse; width: 75%; }
     th, td { border: 1px solid #888; padding: 6px; text-align: center; }
     th { background-color: #f0f0f0; }
   </style>
@@ -36,8 +36,8 @@
 <script>
   // テスト用データ（後でJSONやリアルデータに差し替え）
   const data = [
-    { time: "2025-05-01T15:00:00", result: "1,2,3,...", deviation: "+110%" },
-    { time: "2025-05-01T18:30:00", result: "2,2,2,...", deviation: "-105%" }
+    { time: "2025-05-01T15:00:00", result: "1,2,3,...", deviation: "+76%" },
+    { time: "2025-05-01T18:30:00", result: "2,2,2,...", deviation: "-80%" }
   ];
 
   function populateTable(entries) {
@@ -62,7 +62,7 @@
 const INTERVAL_MS = 1000; // 1秒ごと
 const COUNT_PER_SEC = 100; // 1秒間に100個の乱数
 const RANGE = 10; // 1〜10
-const THRESHOLD_PERCENT = 100; // ±100%以上を記録
+const THRESHOLD_PERCENT = 75; // ±100%以上を記録
 
 // 偏りログの取得
 let logs = JSON.parse(localStorage.getItem('biasLogs') || '[]');
@@ -94,7 +94,7 @@ function generateAndCheck() {
 
     counts.forEach((count, i) => {
         const expected = COUNT_PER_SEC / RANGE;
-        const deviation = ((count - expected) / expected) * 100;
+        const deviation = ((count - expected) / expected) * 75;
 
         if (Math.abs(deviation) >= THRESHOLD_PERCENT) {
             logs.push({
