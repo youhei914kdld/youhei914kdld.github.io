@@ -5,40 +5,4 @@
     <title>ようこそ！</title>
   </head>
   </<body>
-    <h1>Welcome to My Blog!</h1>
-    <p>このブログは地震と乱数の研究ログです。</p>
-</<h2>Pythonコード：地震前後の乱数を記録する仕組み</h2>
-<pre><code class="language-python">
-import requests
-import datetime
-
-def get_recent_earthquakes():
-    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson"
-    response = requests.get(url)
-    data = response.json()
-    quakes = []
-    for feature in data["features"]:
-        time_ms = feature["properties"]["time"]
-        dt = datetime.datetime.utcfromtimestamp(time_ms / 1000)
-        quakes.append(dt)
-    return quakes
-
-# サンプルの乱数ログ（本来はファイルやDBから取得）
-random_log = [
-    ("2025-05-01 16:48:57", 0.734),
-    ("2025-05-01 16:48:58", 0.839),
-    ("2025-05-01 16:48:59", 0.127),
-    ("2025-05-01 16:49:00", 0.664),
-]
-
-# 地震の前後10秒の乱数を抽出する
-def extract_random_around_earthquake(quake_time, log, delta_sec=10):
-    quake_dt = datetime.datetime.strptime(quake_time, "%Y-%m-%d %H:%M:%S")
-    result = []
-    for timestamp_str, value in log:
-        ts_dt = datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-        if abs((ts_dt - quake_dt).total_seconds()) <= delta_sec:
-            result.append((timestamp_str, value))
-    return result
-</code></pre>>>
 </html>
