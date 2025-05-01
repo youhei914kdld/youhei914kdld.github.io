@@ -1,61 +1,23 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>乱数×地震 モニター</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>乱数の偏りチェック</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; background: #f9f9f9; color: #333; }
-    h1, h2 { text-align: center; }
-    .card { background: white; padding: 1rem; border-radius: 1rem; box-shadow: 0 0 10px #ccc; margin: 1rem 0; }
-    .log { font-family: monospace; white-space: pre-wrap; overflow-x: auto; }
-    .meta { font-size: 0.9em; color: gray; text-align: center; }
-    .notice { color: red; font-weight: bold; }
-    .earthquake-list { margin-top: 2rem; }
-    .earthquake-item { padding: 0.5rem; background: #f0f0f0; margin: 0.5rem 0; border-radius: 0.5rem; }
-    .earthquake-item strong { color: #333; }
-    .earthquake-item span { display: inline-block; margin-left: 10px; }
-    select, input { margin: 0.5rem; }
+    body { font-family: Arial, sans-serif; }
+    .log { margin-top: 20px; font-size: 18px; }
+    #notification { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>乱数×地震 モニター</h1>
-
-  <div class="card">
-    <h2>このサイトについて</h2>
-    <p>本サイトでは、1秒に100回ずつランダムな数値を生成し、地震が起きたときにその前後2分間の乱数の偏り（0〜1の平均値）をチェックして±10%以上の偏りがあった場合に通知を表示します。</p>
-    <p>作成者: もりこ / <a href="https://x.com/moriko891212654?s=09" target="_blank">@moriko891212654</a></p>
-  </div>
-
-  <div class="card">
-    <h2>最新の地震と乱数の偏り</h2>
-    <div id="earthquake"></div>
-    <div id="deviation" class="log"></div>
-    <div id="notification" class="notice"></div>
-  </div>
-
-  <div class="card">
-    <h2>保存された地震（最大震度3以上）</h2>
-    <select id="sortOption">
-      <option value="magnitude">震度順</option>
-      <option value="newest">新しい順</option>
-      <option value="oldest">古い順</option>
-    </select>
-    <div id="earthquake-list" class="earthquake-list"></div>
-  </div>
-
-  <div class="card">
-    <h2>乱数の偏り検索</h2>
-    <input type="datetime-local" id="startTime" />
-    <input type="datetime-local" id="endTime" />
-    <button onclick="searchDeviation()">検索</button>
-    <div id="searchResult" class="log"></div>
-  </div>
-
+  <h1>地震と乱数の偏り</h1>
+  <div id="earthquake" class="log"></div>
+  <div id="deviation" class="log"></div>
+  <div id="notification"></div>
+  
   <script>
     let randomLog = [];
-    let earthquakeLog = [];
-    let lastQuakeTime = null;
 
     // 1秒に100回乱数生成
     setInterval(() => {
@@ -66,31 +28,40 @@
           value: Math.random()
         });
       }
-      if (randomLog.length > 360000) randomLog.splice(0, randomLog.length - 360000); // 1時間分保持
+      // 1時間分の乱数を保持
+      if (randomLog.length > 360000) randomLog.splice(0, randomLog.length - 360000); 
     }, 1000);
 
-    // 地震データ取得
+    // 地震情報取得
     async function getJMAQuakeData() {
-      const res = await fetch("https://www.jma.go.jp/bosai/quake/data/list.json");
-      const json = await res.json();
-      const latest = json[0];
-      const jst = new Date(latest.time);
-      return { time: jst, info: latest };
+      const response = await fetch("https://www.jma.go.jp/bosai/quake/data/list.json");
+      const data = await response.json();
+      const latestQuake = data.data[0]; // 最新の地震情報を取得
+      const quakeTime = new Date(latestQuake.originTime); // 地震の発生時間
+      return {
+        time: quakeTime,
+        info: latestQuake
+      };
     }
 
-    // 地震前後2分間の乱数偏り計算
+    // 乱数の偏りを計算
     function getAroundQuakeData(quakeTime) {
-      const start = new Date(quakeTime.getTime() - 2 * 60 * 1000);
-      const end = new Date(quakeTime.getTime() + 2 * 60 * 1000);
+      const start = new Date(quakeTime.getTime() - 2 * 60 * 1000); // 地震前2分
+      const end = new Date(quakeTime.getTime() + 2 * 60 * 1000); // 地震後2分
       const values = randomLog
         .filter(r => new Date(r.time) >= start && new Date(r.time) <= end)
         .map(r => r.value);
-      const avg = values.reduce((a, b) => a + b, 0) / values.length;
-      const deviation = Math.abs(avg - 0.5) * 100 / 0.5;
+
+      if (values.length === 0) {
+        return { avg: 0, deviation: 0 }; // データがない場合は0にする
+      }
+
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;  // 平均値計算
+      const deviation = Math.abs(avg - 0.5) * 100 / 0.5; // 0.5からの偏り計算（0.5は乱数の平均値）
       return { avg, deviation: deviation.toFixed(2), values };
     }
 
-    // 地震情報と乱数偏り表示
+    // 情報の表示
     async function displayInfo() {
       const quake = await getJMAQuakeData();
       document.getElementById("earthquake").innerText = `最新地震: ${quake.time.toLocaleString()} / 地域: ${quake.info.hypoName} / M${quake.info.mag} / 震度${quake.info.maxScale / 10}`;
@@ -101,63 +72,10 @@
       } else {
         document.getElementById("notification").innerText = "";
       }
-
-      // 最大震度3以上の地震保存
-      if (quake.info.maxScale >= 30) {
-        earthquakeLog.push({
-          time: quake.time,
-          magnitude: quake.info.mag,
-          region: quake.info.hypoName,
-          maxScale: quake.info.maxScale / 10
-        });
-
-        // 1週間経過したデータ削除
-        const oneWeekAgo = new Date(new Date() - 7 * 24 * 60 * 60 * 1000);
-        earthquakeLog = earthquakeLog.filter(q => new Date(q.time) > oneWeekAgo);
-
-        // 震度3以上の地震をリストに追加
-        updateEarthquakeList();
-      }
     }
 
-    // 震度3以上の地震リストの更新
-    function updateEarthquakeList() {
-      const sortOption = document.getElementById("sortOption").value;
-      const sortedData = [...earthquakeLog];
-
-      if (sortOption === "magnitude") {
-        sortedData.sort((a, b) => b.maxScale - a.maxScale);
-      } else if (sortOption === "newest") {
-        sortedData.sort((a, b) => b.time - a.time);
-      } else if (sortOption === "oldest") {
-        sortedData.sort((a, b) => a.time - b.time);
-      }
-
-      const earthquakeList = document.getElementById("earthquake-list");
-      earthquakeList.innerHTML = "";
-      sortedData.forEach(q => {
-        const item = document.createElement("div");
-        item.className = "earthquake-item";
-        item.innerHTML = `
-          <strong>${q.region}</strong> | M${q.magnitude} | 震度${q.maxScale} | ${new Date(q.time).toLocaleString()}
-        `;
-        earthquakeList.appendChild(item);
-      });
-    }
-
-    // 偏り検索機能
-    function searchDeviation() {
-      const startTime = new Date(document.getElementById("startTime").value);
-      const endTime = new Date(document.getElementById("endTime").value);
-      const values = randomLog.filter(r => new Date(r.time) >= startTime && new Date(r.time) <= endTime);
-      const avg = values.reduce((a, b) => a + b, 0) / values.length;
-      const deviation = Math.abs(avg - 0.5) * 100 / 0.5;
-      document.getElementById("searchResult").innerText = `指定期間の乱数平均: ${avg.toFixed(3)} / 偏り率: ${deviation.toFixed(2)}%`;
-    }
-
-    // 10秒ごとに地震情報の表示
-    setInterval(displayInfo, 10000);
-
+    // 5秒ごとに情報更新
+    setInterval(displayInfo, 5000);
   </script>
 </body>
 </html>
