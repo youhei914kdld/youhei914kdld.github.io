@@ -1,45 +1,73 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>乱数偏り計測</title>
+    <title>乱数偏り計測システム</title>
 </head>
 <body>
-    <h1>地震発生時の乱数偏り測定</h1>
-    <input type="datetime-local" id="start-time" />
-    <input type="datetime-local" id="end-time" />
+    <h1>乱数偏り計測システム</h1>
+
+    <!-- 説明文 -->
+    <p>
+        このシステムは、地震発生時における乱数の偏りを計測するためのシステムです。
+        乱数は常に生成されており、指定した時間内の乱数の偏り具合を％で表示します。
+        また、直近の地震発生時刻もリアルタイムで確認することができます。
+        <br><br>
+        ・地震が発生した時の情報は過去5分間に限定して表示されます。<br>
+        ・乱数データは0.1秒間隔で100回生成され、24時間稼働し続けます。<br>
+        ・指定した時間範囲内の乱数の偏り具合を％で計算し、表示します。<br><br>
+    </p>
+
+    <!-- 直近の地震発生時刻を表示 -->
+    <p id="recent-earthquake">直近の地震発生時刻: 取得中...</p>
+
+    <!-- ユーザーが指定する時間範囲 -->
+    <label for="start-time">開始時間:</label>
+    <input type="datetime-local" id="start-time">
+    <label for="end-time">終了時間:</label>
+    <input type="datetime-local" id="end-time">
     <button onclick="searchBias()">偏り計測</button>
-    <p id="result"></p>
+
+    <div id="result"></div>
 
     <script>
+        // 乱数データ（サンプル）
         let randomNumbers = [];
         
-        // 乱数を0.1秒ごとに100回生成する
+        // 乱数生成
         function generateRandomNumbers() {
             setInterval(() => {
                 for (let i = 0; i < 100; i++) {
                     const randomValue = Math.random();
                     randomNumbers.push({ timestamp: new Date(), value: randomValue });
                 }
-            }, 100);
+            }, 100);  // 100ms毎に乱数を100回生成
         }
 
-        // 地震データを取得する（過去5分間）
+        // 地震データを取得する関数
         async function getEarthquakeData() {
             const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson";
             const response = await fetch(url);
             const data = await response.json();
             const now = new Date().getTime();
-            const fiveMinutesAgo = now - (5 * 60 * 1000); // 5分前のタイムスタンプ
+            const fiveMinutesAgo = now - (5 * 60 * 1000);  // 5分前のタイムスタンプ
 
-            return data.features.filter(earthquake => {
+            // 最新の地震データを取得
+            const recentEarthquake = data.features.filter(earthquake => {
                 const earthquakeTime = earthquake.properties.time;
                 return earthquakeTime >= fiveMinutesAgo && earthquakeTime <= now;
-            });
+            })[0];  // 最初の地震データ（最新のもの）
+
+            if (recentEarthquake) {
+                const earthquakeTime = new Date(recentEarthquake.properties.time);
+                document.getElementById('recent-earthquake').innerText = `直近の地震発生時刻: ${earthquakeTime.toISOString()}`;
+            } else {
+                document.getElementById('recent-earthquake').innerText = '直近の地震はありません。';
+            }
         }
 
-        // 指定した時間範囲の乱数偏りを計算する
+        // 乱数の偏り計算
         function calculateRandomBias(startTime, endTime) {
             const start = new Date(startTime).getTime();
             const end = new Date(endTime).getTime();
@@ -54,7 +82,7 @@
             return biasPercentage;
         }
 
-        // 偏り計測の検索ボタンがクリックされた時
+        // ユーザーインターフェースの処理
         function searchBias() {
             const startTime = document.getElementById('start-time').value;
             const endTime = document.getElementById('end-time').value;
@@ -62,8 +90,11 @@
             document.getElementById('result').innerText = `指定時間内の乱数の偏り具合: ${biasPercentage}%`;
         }
 
-        // 乱数生成を開始
-        generateRandomNumbers();
+        // ページ読み込み時に地震データを取得
+        window.onload = function() {
+            getEarthquakeData();  // ページが読み込まれたときに地震データを取得
+            generateRandomNumbers();  // 乱数生成開始
+        };
     </script>
 </body>
 </html>
