@@ -35,11 +35,7 @@
 
 <script>
   // テスト用データ（後でJSONやリアルデータに差し替え）
-  const data = [
-    { time: "2025-05-01T15:00:00", result: "1,2,3,...", deviation: "+76%" },
-    { time: "2025-05-01T18:30:00", result: "2,2,2,...", deviation: "-80%" }
-  ];
-
+ 
   function populateTable(entries) {
     const tbody = document.querySelector("#logTable tbody");
     tbody.innerHTML = "";
@@ -51,20 +47,20 @@
   }
 
   function filterByTime() {
-    const selected = document.getElementById("endDate").value;
-    const filtered = logs.filter(item => item.time >= selected);
-    
-    const table = document.getElementById('logTable');
-    table.innerHTML = "<tr><th>日時</th><th>偏りのある値</th><th>出現数</th><th>偏り%</th></tr>";
+  const selected = document.getElementById("endDate").value;
+  if (!selected) return;
 
-    filtered.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
-    for (const log of filtered) {
-        const row = table.insertRow();
-        row.insertCell().innerText = log.time;
-        row.insertCell().innerText = log.value;
-        row.insertCell().innerText = log.count;
-        row.insertCell().innerText = `${log.deviation}%`;
-    }
+  const filtered = logs.filter(item => item.time >= selected);
+
+  const tbody = document.querySelector("#logTable tbody");
+  tbody.innerHTML = "";
+
+  filtered.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
+  for (const log of filtered) {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${log.time}</td><td>${log.value} × ${log.count}</td><td>${log.deviation}%</td>`;
+    tbody.appendChild(row);
+  }
 }
 
   window.onload = () => updateLogTable();
