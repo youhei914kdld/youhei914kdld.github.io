@@ -69,7 +69,7 @@ function updateLogTable() {
   const tbody = document.querySelector('#logTable tbody');
   tbody.innerHTML = "";
 
-  logs.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
+  logs.sort((a, b) => Math.abs(Number(b.deviation)) - Math.abs(Number(a.deviation)));
   for (const log of logs) {
     const row = document.createElement("tr");
     row.innerHTML = `<td>${log.time}</td><td>${log.value} × ${log.count}</td><td>${log.deviation}%</td>`;
